@@ -17,7 +17,6 @@ class Embeddings(nn.Module):
 
 
 class PositionwiseFeedForward(nn.Module):
-    "Implements FFN equation."
     def __init__(self, d_model, d_ff, dropout=0.1):
         super(PositionwiseFeedForward, self).__init__()
         self.w_1 = nn.Linear(d_model, d_ff)
@@ -30,10 +29,8 @@ class PositionwiseFeedForward(nn.Module):
 
 class MultiHeadedAttention(nn.Module):
     def __init__(self, h, d_model, dropout=0.1):
-        "Take in model size and number of heads."
         super(MultiHeadedAttention, self).__init__()
         assert d_model % h == 0
-        # We assume d_v always equals d_k
         self.d_k = d_model // h
         self.h = h
         self.linears = clones(nn.Linear(d_model, d_model), 4)
@@ -43,20 +40,16 @@ class MultiHeadedAttention(nn.Module):
     def forward(self, query, key, value, mask=None):
         "Implements Figure 2"
         if mask is not None:
-            # Same mask applied to all h heads.
             mask = mask.unsqueeze(1)
         nbatches = query.size(0)
 
-        # 1) Do all the linear projections in batch from d_model => h x d_k
         query, key, value = \
             [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
              for l, x in zip(self.linears, (query, key, value))]
 
-        # 2) Apply attention on all the projected vectors in batch.
         x, self.attn = attention(query, key, value, mask=mask,
                                  dropout=self.dropout)
 
-        # 3) "Concat" using a view and apply a final linear.
         x = x.transpose(1, 2).contiguous() \
             .view(nbatches, -1, self.h * self.d_k)
         x = torch.squeeze(x)
@@ -76,7 +69,6 @@ def attention(query, key, value, mask=None, dropout=None):
 
 
 class PositionalEncoding(nn.Module):
-    "Implement the PE function."
 
     def __init__(self, d_model, dropout, max_len=5000):
         super(PositionalEncoding, self).__init__()
